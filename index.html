@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChimeraX Hydrophobicity Coloring Tool</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 16px;
+    color: #1a1a1a;
+    background: #ffffff;
+    padding: 2rem 1rem;
+    max-width: 760px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+  h1 { font-size: 22px; font-weight: 500; margin-bottom: 0.4rem; }
+  .subtitle { font-size: 13px; color: #666; margin-bottom: 1.75rem; }
+  code { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.9em; background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
+  .card { background: #f7f7f5; border-radius: 8px; padding: 1rem; }
+  .card label { font-size: 13px; color: #666; display: block; margin-bottom: 6px; }
+  .color-row { display: flex; align-items: center; gap: 8px; }
+  input[type="color"] { width: 36px; height: 36px; padding: 2px; border-radius: 6px; border: 0.5px solid #ddd; cursor: pointer; flex-shrink: 0; }
+  input[type="text"] { flex: 1; min-width: 0; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; padding: 7px 10px; border: 0.5px solid #ddd; border-radius: 6px; background: #fff; outline: none; }
+  input[type="text"]:focus { border-color: #999; }
+  .model-card { background: #f7f7f5; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; }
+  .checkbox-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+  .checkbox-row label { font-size: 13px; color: #555; cursor: pointer; }
+  #model-row { display: flex; align-items: center; gap: 10px; }
+  #model-row input[type="text"] { flex: 1; }
+  #model-row .hint { font-size: 12px; color: #999; white-space: nowrap; }
+  .section-label { font-size: 13px; color: #666; display: block; margin-bottom: 8px; }
+  .radio-group { margin-bottom: 1.25rem; }
+  .radio-group label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; margin-right: 16px; }
+  .gradient-section { margin-bottom: 1.25rem; }
+  .gradient-wrap { position: relative; }
+  canvas { width: 100%; height: 32px; border-radius: 6px; display: block; }
+  .zero-tick { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: rgba(255,255,255,0.65); pointer-events: none; }
+  .gradient-labels { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 4px; position: relative; }
+  .gradient-labels span { font-size: 12px; color: #999; }
+  .zero-label { position: absolute; left: 50%; transform: translateX(-50%); font-size: 12px; color: #999; }
+  .script-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .script-header span { font-size: 13px; color: #666; }
+  button { font-size: 13px; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 0.5px solid #ccc; border-radius: 6px; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  button:hover { background: #f5f5f5; }
+  button:active { transform: scale(0.98); }
+  textarea { width: 100%; height: 280px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; line-height: 1.6; resize: vertical; border-radius: 6px; padding: 10px; border: 0.5px solid #ddd; background: #f7f7f5; color: #1a1a1a; }
+  @media (max-width: 480px) { .grid-2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<h1>ChimeraX Hydrophobicity Coloring</h1>
+<p class="subtitle">Choose colors, configure options, then copy the script into ChimeraX or save as a <code>.cxc</code> file. Based on the Eisenberg normalized consensus hydrophobicity scale (1984).</p>
+
+<div class="grid-2">
+  <div class="card">
+    <label>Hydrophobic color</label>
+    <div class="color-row">
+      <input type="color" id="hydrophob-picker" value="#46c88c">
+      <input type="text" id="hydrophob-hex" value="#46c88c" maxlength="7">
+    </div>
+  </div>
+  <div class="card">
+    <label>Hydrophilic color</label>
+    <div class="color-row">
+      <input type="color" id="hydrophil-picker" value="#af088f">
+      <input type="text" id="hydrophil-hex" value="#af088f" maxlength="7">
+    </div>
+  </div>
+</div>
+
+<div class="model-card">
+  <div class="checkbox-row">
+    <input type="checkbox" id="include-model" checked>
+    <label for="include-model">Target a specific structure or model</label>
+  </div>
+  <div id="model-row">
+    <input type="text" id="model-id" value="3UUS" placeholder="PDB code e.g. 3UUS  or model e.g. #1">
+    <span class="hint">PDB code or <code>#model</code></span>
+  </div>
+</div>
+
+<div class="radio-group">
+  <span class="section-label">Show residues</span>
+  <label><input type="radio" name="show-mode" value="all" checked> All residues</label>
+  <label><input type="radio" name="show-mode" value="hydrophobic"> Hydrophobic only</label>
+  <label><input type="radio" name="show-mode" value="hydrophilic"> Hydrophilic only</label>
+</div>
+
+<div class="gradient-section">
+  <span class="section-label">Gradient preview</span>
+  <div class="gradient-wrap">
+    <canvas id="gradient-bar" width="640" height="32"></canvas>
+    <div class="zero-tick"></div>
+  </div>
+  <div class="gradient-labels">
+    <span>Hydrophilic</span>
+    <span class="zero-label">0</span>
+    <span>Hydrophobic</span>
+  </div>
+</div>
+
+<div class="script-header">
+  <span>Generated ChimeraX script</span>
+  <button id="copy-btn" onclick="copyScript()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    Copy
+  </button>
+</div>
+<textarea id="script-output" readonly></textarea>
+
+<script>
+const AAs = ['ala','arg','asn','asp','cys','gln','glu','gly','his','ile','leu','lys','met','phe','pro','ser','thr','trp','tyr','val'];
+const values = [0.620,-2.530,-0.780,-0.900,0.290,-0.850,-0.740,0.480,-0.400,1.380,1.060,-1.500,0.640,1.190,0.120,-0.180,-0.050,0.810,0.260,1.080];
+const MIN_VAL = -2.530, MAX_VAL = 1.380;
+const NEUTRAL = [0.5, 0.5, 0.5];
+
+function isValidHex(h) { return /^#[0-9a-fA-F]{6}$/.test(h); }
+function hexToRgb(h) { return [parseInt(h.slice(1,3),16)/255, parseInt(h.slice(3,5),16)/255, parseInt(h.slice(5,7),16)/255]; }
+
+function interpolate(value, philRgb, phobRgb) {
+  if (value < 0) { const t = value/MIN_VAL; return [(1-t)*NEUTRAL[0]+t*philRgb[0],(1-t)*NEUTRAL[1]+t*philRgb[1],(1-t)*NEUTRAL[2]+t*philRgb[2]]; }
+  const t = value/MAX_VAL; return [(1-t)*NEUTRAL[0]+t*phobRgb[0],(1-t)*NEUTRAL[1]+t*phobRgb[1],(1-t)*NEUTRAL[2]+t*phobRgb[2]];
+}
+function toChimeraX(rgb) { return [Math.round(rgb[0]*100),Math.round(rgb[1]*100),Math.round(rgb[2]*100)].join(','); }
+
+function drawGradient() {
+  const phobHex = document.getElementById('hydrophob-hex').value;
+  const philHex = document.getElementById('hydrophil-hex').value;
+  if (!isValidHex(phobHex)||!isValidHex(philHex)) return;
+  const canvas = document.getElementById('gradient-bar');
+  const ctx = canvas.getContext('2d');
+  const philRgb = hexToRgb(philHex), phobRgb = hexToRgb(phobHex);
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0,0,w,h);
+  for (let i = 0; i < w; i++) {
+    const t = i/w; let rgb;
+    if (t < 0.5) { const p=(0.5-t)/0.5; rgb=[(1-p)*NEUTRAL[0]+p*philRgb[0],(1-p)*NEUTRAL[1]+p*philRgb[1],(1-p)*NEUTRAL[2]+p*philRgb[2]]; }
+    else { const p=(t-0.5)/0.5; rgb=[(1-p)*NEUTRAL[0]+p*phobRgb[0],(1-p)*NEUTRAL[1]+p*phobRgb[1],(1-p)*NEUTRAL[2]+p*phobRgb[2]]; }
+    ctx.fillStyle=`rgb(${Math.round(rgb[0]*255)},${Math.round(rgb[1]*255)},${Math.round(rgb[2]*255)})`;
+    ctx.fillRect(i,0,1,h);
+  }
+}
+
+function buildScript() {
+  const phobHex = document.getElementById('hydrophob-hex').value;
+  const philHex = document.getElementById('hydrophil-hex').value;
+  if (!isValidHex(phobHex)||!isValidHex(philHex)) return;
+  const philRgb = hexToRgb(philHex), phobRgb = hexToRgb(phobHex);
+  const mode = document.querySelector('input[name="show-mode"]:checked').value;
+  const includeModel = document.getElementById('include-model').checked;
+  const rawModel = document.getElementById('model-id').value.trim();
+  const isPDB = includeModel && rawModel && !rawModel.startsWith('#');
+  const isModelNum = includeModel && rawModel.startsWith('#');
+  let lines = ['# ChimeraX hydrophobicity coloring script','# Eisenberg normalized consensus scale (1984)',`# Hydrophobic: ${phobHex}  |  Hydrophilic: ${philHex}`,`# Mode: ${mode}`,''];
+  if (isPDB) { lines.push(`open ${rawModel.toUpperCase()}`,''); }
+  AAs.forEach((aa,i) => {
+    const val = values[i], isPhobic = val > 0;
+    if (mode==='hydrophobic' && !isPhobic) return;
+    if (mode==='hydrophilic' && isPhobic) return;
+    const c = toChimeraX(interpolate(val,philRgb,phobRgb));
+    lines.push(isModelNum ? `color ${rawModel}/:${aa} ${c}` : `color :${aa} ${c}`);
+  });
+  document.getElementById('script-output').value = lines.join('\n');
+}
+
+function copyScript() {
+  document.getElementById('script-output').select();
+  document.execCommand('copy');
+  const btn = document.getElementById('copy-btn');
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+  setTimeout(() => { btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy'; }, 2000);
+}
+
+function toggleModelRow() {
+  document.getElementById('model-row').style.display = document.getElementById('include-model').checked ? 'flex' : 'none';
+  buildScript();
+}
+
+function onPickerChange(pid, hid) { document.getElementById(hid).value = document.getElementById(pid).value; drawGradient(); buildScript(); }
+function onHexInput(hid, pid) {
+  let h = document.getElementById(hid).value;
+  if (!h.startsWith('#')) h = '#'+h;
+  if (isValidHex(h)) { document.getElementById(hid).value=h; document.getElementById(pid).value=h; drawGradient(); buildScript(); }
+}
+
+document.getElementById('hydrophob-picker').addEventListener('input', () => onPickerChange('hydrophob-picker','hydrophob-hex'));
+document.getElementById('hydrophil-picker').addEventListener('input', () => onPickerChange('hydrophil-picker','hydrophil-hex'));
+document.getElementById('hydrophob-hex').addEventListener('input', () => onHexInput('hydrophob-hex','hydrophob-picker'));
+document.getElementById('hydrophil-hex').addEventListener('input', () => onHexInput('hydrophil-hex','hydrophil-picker'));
+document.getElementById('model-id').addEventListener('input', buildScript);
+document.getElementById('include-model').addEventListener('change', toggleModelRow);
+document.querySelectorAll('input[name="show-mode"]').forEach(r => r.addEventListener('change', () => { drawGradient(); buildScript(); }));
+
+drawGradient(); buildScript();
+</script>
+</body>
+</html>
