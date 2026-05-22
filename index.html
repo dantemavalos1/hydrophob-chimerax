@@ -57,16 +57,9 @@
 <body>
 
 <h1>ChimeraX Hydrophobicity Coloring</h1>
-<p class="subtitle">Choose colors, configure options, then copy the script into ChimeraX or save as a <code>.cxc</code> file. Based on the Eisenberg normalized consensus hydrophobicity scale (1984).</p>
+<p class="subtitle">Choose colors, configure options, then copy the script into ChimeraX or save as a <code>.cxc</code> file. Based on the Eisenberg normalized consensus hydrophobicity scale (1984). Creates a color gradient from the hydrophobic color to medium gray (#808080, RBG values of 128, 128, 128) and a color gradient from the hydrophillic color to medium gray. </p>
 
 <div class="grid-2">
-  <div class="card">
-    <label for="hydrophob-picker">Hydrophobic color</label>
-    <div class="color-row">
-      <input type="color" id="hydrophob-picker" value="#46c88c">
-      <input type="text" id="hydrophob-hex" value="#46c88c" maxlength="7" placeholder="#46c88c">
-    </div>
-  </div>
   <div class="card">
     <label for="hydrophil-picker">Hydrophilic color</label>
     <div class="color-row">
@@ -74,8 +67,15 @@
       <input type="text" id="hydrophil-hex" value="#af088f" maxlength="7" placeholder="#af088f">
     </div>
   </div>
+  <div class="card">
+    <label for="hydrophob-picker">Hydrophobic color</label>
+    <div class="color-row">
+      <input type="color" id="hydrophob-picker" value="#46c88c">
+      <input type="text" id="hydrophob-hex" value="#46c88c" maxlength="7" placeholder="#46c88c">
+    </div>
+  </div>
 </div>
-
+ 
 <div class="model-card">
   <div class="checkbox-row">
     <input type="checkbox" id="include-model" checked>
@@ -83,7 +83,7 @@
   </div>
   <div id="model-row">
     <input type="text" id="model-id" value="3UUS" placeholder="PDB code e.g. 3UUS  or model e.g. #1">
-    <span class="hint">PDB code or <code>#model</code></span>
+    <span class="hint">PDB ID</span>
   </div>
 </div>
 
@@ -175,12 +175,15 @@ function buildScript() {
   let lines = [
     '# ChimeraX hydrophobicity coloring script',
     '# Eisenberg normalized consensus scale (1984)',
-    '# Avalos & Drennan Lab — dantemavalos.com',
+    '# Made by Dante M. Avalos — dantemavalos.com, inspired by color_h',
     `# Hydrophobic: ${phobHex}  |  Hydrophilic: ${philHex}`,
     `# Mode: ${mode}`,
     ''
   ];
   if (isPDB) { lines.push(`open ${rawModel.toUpperCase()}`, ''); }
+  let lines = [
+    'show surface'
+  ]; 
   AAs.forEach((aa, i) => {
     const val = values[i], isPhobic = val > 0;
     if (mode === 'hydrophobic' && !isPhobic) return;
