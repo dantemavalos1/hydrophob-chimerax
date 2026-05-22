@@ -181,9 +181,7 @@ function buildScript() {
     ''
   ];
   if (isPDB) { lines.push(`open ${rawModel.toUpperCase()}`, ''); }
-  let lines = [
-    'show surface'
-  ]; 
+  lines.push('show surface');
   AAs.forEach((aa, i) => {
     const val = values[i], isPhobic = val > 0;
     if (mode === 'hydrophobic' && !isPhobic) return;
