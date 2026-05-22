@@ -148,7 +148,7 @@ function setSoftware(sw) {
   document.getElementById('btn-pymol').classList.toggle('active', sw === 'pymol');
   document.getElementById('script-label').textContent = sw === 'chimerax' ? 'Generated ChimeraX script' : 'Generated PyMOL script';
   const hint = document.getElementById('model-hint');
-  hint.textContent = sw === 'chimerax' ? 'PDB ID' : 'PDB ID or object name';
+  hint.textContent = sw === 'chimerax' ? 'PDB ID' : 'PDB ID';
   buildScript();
 }
  
