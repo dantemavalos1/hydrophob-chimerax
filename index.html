@@ -176,9 +176,7 @@ function buildScript() {
     '# ChimeraX hydrophobicity coloring script',
     '# Eisenberg normalized consensus scale (1984)',
     '# Made by Dante M. Avalos, inspired by color_h',
-    `# Hydrophobic: ${phobHex}  |  Hydrophilic: ${philHex}`,
-    `# Mode: ${mode}`,
-    ''
+    `# Hydrophobic: ${phobHex}  |  Hydrophilic: ${philHex}`
   ];
   if (isPDB) { lines.push(`open ${rawModel.toUpperCase()}`, ''); }
   lines.push('show surface');
